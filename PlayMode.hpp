@@ -41,4 +41,6 @@ struct PlayMode : Mode {
 	float timer = 3.0f;
 
 	bool is_game_over = false;
+
+	void spawn_cheese();
 };

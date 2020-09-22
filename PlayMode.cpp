@@ -103,7 +103,16 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			down.pressed = false;
 			return true;
 		}
-	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
+		else if (evt.key.keysym.sym == SDLK_RETURN)
+		{
+			// Restart game
+			timer = 3.0f;
+			spawn_cheese();
+			is_game_over = false;
+			return true;
+		}
+	}
+	else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
 			SDL_SetRelativeMouseMode(SDL_TRUE);
 			return true;
@@ -186,12 +195,7 @@ void PlayMode::update(float elapsed) {
 			float randomNum = mt() / (float)mt.max();
 			timer = randomNum * (5.0f);
 
-			// based on https://glm.g-truc.net/0.9.4/api/a00154.html
-			
-			// Make the cheese disappear and reappear elsewhere
-			glm::vec2 random_pt = glm::diskRand(FloorX);
-			cheese->position.x = random_pt.x;
-			cheese->position.y = random_pt.y;
+			spawn_cheese();
 		}
 	}
 
@@ -253,8 +257,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 
-		// based on https://stackoverflow.com/a/35345427
-		lines.draw_text("Timer:"+ std::to_string((int)std::ceil(timer)),
+		lines.draw_text("Timer:"+ std::to_string((int)std::ceil(timer)), // based on https://stackoverflow.com/a/35345427
 			glm::vec3(-aspect + 0.1f * H, 0.8 - 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0xff));
@@ -269,4 +272,13 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 		
 	}
+}
+
+void PlayMode::spawn_cheese(){
+	// based on https://glm.g-truc.net/0.9.4/api/a00154.html
+			
+	// Make the cheese disappear and reappear elsewhere
+	glm::vec2 random_pt = glm::diskRand(FloorX);
+	cheese->position.x = random_pt.x;
+	cheese->position.y = random_pt.y;
 }
