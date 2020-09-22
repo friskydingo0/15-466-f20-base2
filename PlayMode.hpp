@@ -37,8 +37,12 @@ struct PlayMode : Mode {
 	//camera:
 	Scene::Camera *camera = nullptr;
 
-	// Timer
+	// Game Timer
 	float timer = 3.0f;
+
+	// Score
+	unsigned int score = 0;
+	unsigned int best_score = 0;
 
 	bool is_game_over = false;
 

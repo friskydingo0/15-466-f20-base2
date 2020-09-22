@@ -107,6 +107,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		{
 			// Restart game
 			timer = 3.0f;
+			score = 0;
 			spawn_cheese();
 			is_game_over = false;
 			return true;
@@ -191,9 +192,13 @@ void PlayMode::update(float elapsed) {
 		if (dist <= 0.2f)
 		{
 			std::cout << "CHOMP!!!";
+
+			score++;
+			best_score = (score > best_score ? score : best_score);
+
 			// Reset timer to a random number
 			float randomNum = mt() / (float)mt.max();
-			timer = randomNum * (5.0f);
+			timer = 3.0f + randomNum * (2.0f);
 
 			spawn_cheese();
 		}
@@ -262,11 +267,21 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0xff));
 
+		lines.draw_text("Score:"+ std::to_string(score),
+			glm::vec3(0 + 0.1f * H, 0.8 - 0.1f * H, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0x00, 0x00, 0x00, 0xff));
+
 		if (is_game_over)
 		{
 			constexpr float GameOverH = 0.2f;
 			lines.draw_text("GAME OVER! Press Enter to restart.",
-				glm::vec3(-aspect + 0.0f * GameOverH, 0 - 0.1f * GameOverH, 0.0),
+				glm::vec3(-aspect + 0.0f * GameOverH, -0.1f * GameOverH, 0.0),
+				glm::vec3(GameOverH, 0.0f, 0.0f), glm::vec3(0.0f, GameOverH, 0.0f),
+				glm::u8vec4(0x00, 0x00, 0x00, 0xff));
+			
+			lines.draw_text("Best:"+ std::to_string(best_score),
+				glm::vec3(-aspect + 0.0f * GameOverH, -2.0f * GameOverH, 0.0),
 				glm::vec3(GameOverH, 0.0f, 0.0f), glm::vec3(0.0f, GameOverH, 0.0f),
 				glm::u8vec4(0x00, 0x00, 0x00, 0xff));
 		}
