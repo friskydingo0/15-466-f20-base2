@@ -12,23 +12,25 @@
 
 #include <random>
 
-GLuint hexapod_meshes_for_lit_color_texture_program = 0;
-Load< MeshBuffer > hexapod_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("hexapod.pnct"));
-	hexapod_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+static std::mt19937 mt; // usage based on 15-466-f20-base0 code
+
+GLuint cube_pit_meshes_for_lit_color_texture_program = 0;
+Load< MeshBuffer > cube_pit_meshes(LoadTagDefault, []() -> MeshBuffer const * {
+	MeshBuffer const *ret = new MeshBuffer(data_path("cube-pit.pnct"));
+	cube_pit_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
-Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("hexapod.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
-		Mesh const &mesh = hexapod_meshes->lookup(mesh_name);
+Load< Scene > cube_pit_scene(LoadTagDefault, []() -> Scene const * {
+	return new Scene(data_path("cube-pit.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+		Mesh const &mesh = cube_pit_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
 		drawable.pipeline = lit_color_texture_program_pipeline;
 
-		drawable.pipeline.vao = hexapod_meshes_for_lit_color_texture_program;
+		drawable.pipeline.vao = cube_pit_meshes_for_lit_color_texture_program;
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
@@ -36,20 +38,24 @@ Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
 	});
 });
 
-PlayMode::PlayMode() : scene(*hexapod_scene) {
-	//get pointers to leg for convenience:
-	for (auto &transform : scene.transforms) {
-		if (transform.name == "Hip.FL") hip = &transform;
-		else if (transform.name == "UpperLeg.FL") upper_leg = &transform;
-		else if (transform.name == "LowerLeg.FL") lower_leg = &transform;
+PlayMode::PlayMode() : scene(*cube_pit_scene) {
+	// pointer to player object root
+	for (auto &transform : scene.transforms)
+	{
+		if (transform.name == "Player")
+		{
+			std::cout << "Found Boxy!" << std::endl;
+			boxy = &transform;
+			std::cout << "Pos : " << boxy->position.z << std::endl;
+		}
+		else if (transform.name == "Cheese")
+		{
+			std::cout << "Found his food!" << std::endl;
+			cheese = &transform;
+			cheese->position.z = 0.2f;
+		}
+		
 	}
-	if (hip == nullptr) throw std::runtime_error("Hip not found.");
-	if (upper_leg == nullptr) throw std::runtime_error("Upper leg not found.");
-	if (lower_leg == nullptr) throw std::runtime_error("Lower leg not found.");
-
-	hip_base_rotation = hip->rotation;
-	upper_leg_base_rotation = upper_leg->rotation;
-	lower_leg_base_rotation = lower_leg->rotation;
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -107,11 +113,6 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 				evt.motion.xrel / float(window_size.y),
 				-evt.motion.yrel / float(window_size.y)
 			);
-			camera->transform->rotation = glm::normalize(
-				camera->transform->rotation
-				* glm::angleAxis(-motion.x * camera->fovy, glm::vec3(0.0f, 1.0f, 0.0f))
-				* glm::angleAxis(motion.y * camera->fovy, glm::vec3(1.0f, 0.0f, 0.0f))
-			);
 			return true;
 		}
 	}
@@ -120,29 +121,12 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
-
-	//slowly rotates through [0,1):
-	wobble += elapsed / 10.0f;
-	wobble -= std::floor(wobble);
-
-	hip->rotation = hip_base_rotation * glm::angleAxis(
-		glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 1.0f, 0.0f)
-	);
-	upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
-		glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 0.0f, 1.0f)
-	);
-	lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
-		glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 0.0f, 1.0f)
-	);
-
-	//move camera:
+	
+	// move Boxy
 	{
-
-		//combine inputs into a move:
+		//combine inputs into a move:	// Repurposing the camera move from base code to move player
 		constexpr float PlayerSpeed = 30.0f;
+		constexpr float RotationSpeed = 10.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x =-1.0f;
 		if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -152,12 +136,47 @@ void PlayMode::update(float elapsed) {
 		//make it so that moving diagonally doesn't go faster:
 		if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
 
-		glm::mat4x3 frame = camera->transform->make_local_to_parent();
+		glm::mat4x3 frame = boxy->make_local_to_parent();
 		glm::vec3 right = frame[0];
-		//glm::vec3 up = frame[1];
-		glm::vec3 forward = -frame[2];
+		glm::vec3 up = frame[1];
 
-		camera->transform->position += move.x * right + move.y * forward;
+		boxy->position += move.y * up;
+
+		boxy->rotation = boxy->rotation * glm::angleAxis(
+			RotationSpeed * -move.x * elapsed,	// Rotation increases counter-clockwise. Hence *(-1)
+			glm::vec3(0.0f, 0.0f, 1.0f)
+		);
+	}
+
+	// spin the cheese
+	{
+		constexpr float SpinSpeed = 5.0f;
+
+		cheese->rotation = cheese->rotation * glm::angleAxis(SpinSpeed * elapsed, glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
+	// check for "collision". Essentially just checks for distance
+	{
+		float dist = glm::distance(cheese->position, boxy->position);
+		if (dist <= 0.2f)
+		{
+			std::cout << "CHOMP!!!";
+			// Make the cheese disappear and reappear elsewhere
+			float randomNum = mt() / (float)mt.max();
+			float randomX = randomNum * FloorX;
+
+			randomNum = mt() / (float)mt.max();
+			float randomY = randomNum * FloorY;
+
+			cheese->position.x = randomX;
+			cheese->position.y = randomY;
+		}
+	}
+
+	// TODO: Orbiting camera move
+	{
+		// cam_offset = camera->transform->position - boxy->position; // Do this in the constructor
+		// camera->transform->position = boxy->position + cam_offset;
 	}
 
 	//reset button press counters:
@@ -202,14 +221,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
+		lines.draw_text("WASD to move Boxy. Eat cheese to survive. Time runs out, you die.",
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
+		lines.draw_text("WASD to move Boxy. Eat cheese to survive. Time runs out, you die.",
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+
+		lines.draw_text("Timer:",
+			glm::vec3(-aspect + 0.1f * H, 0.8 - 0.1f * H, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0x00, 0x00, 0x00, 0xff));
 	}
 }
