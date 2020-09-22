@@ -31,10 +31,14 @@ struct PlayMode : Mode {
 	Scene::Transform *boxy = nullptr;
 	Scene::Transform *cheese = nullptr;
 
-	const float FloorX = 3.288f;
-	const float FloorY = 3.288f;
+	const float FloorX = 2.0f;
+	const float FloorY = 1.5f;
 	
 	//camera:
 	Scene::Camera *camera = nullptr;
 
+	// Timer
+	float timer = 3.0f;
+
+	bool is_game_over = false;
 };

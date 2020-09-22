@@ -9,6 +9,7 @@
 #include "data_path.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/random.hpp>
 
 #include <random>
 
@@ -121,6 +122,13 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
+
+	// Stop everything if game is over
+	if (is_game_over)
+	{
+		return;
+	}
+	
 	
 	// move Boxy
 	{
@@ -148,10 +156,23 @@ void PlayMode::update(float elapsed) {
 		);
 	}
 
+	// timer update
+	{
+		if (timer <= 0)
+		{
+			timer = 0;
+			// Game over. Show the text
+			is_game_over = true;
+		}
+		else
+		{
+			timer -= elapsed;
+		}
+	}
+
 	// spin the cheese
 	{
 		constexpr float SpinSpeed = 5.0f;
-
 		cheese->rotation = cheese->rotation * glm::angleAxis(SpinSpeed * elapsed, glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
@@ -161,15 +182,16 @@ void PlayMode::update(float elapsed) {
 		if (dist <= 0.2f)
 		{
 			std::cout << "CHOMP!!!";
-			// Make the cheese disappear and reappear elsewhere
+			// Reset timer to a random number
 			float randomNum = mt() / (float)mt.max();
-			float randomX = randomNum * FloorX;
+			timer = randomNum * (5.0f);
 
-			randomNum = mt() / (float)mt.max();
-			float randomY = randomNum * FloorY;
-
-			cheese->position.x = randomX;
-			cheese->position.y = randomY;
+			// based on https://glm.g-truc.net/0.9.4/api/a00154.html
+			
+			// Make the cheese disappear and reappear elsewhere
+			glm::vec2 random_pt = glm::diskRand(FloorX);
+			cheese->position.x = random_pt.x;
+			cheese->position.y = random_pt.y;
 		}
 	}
 
@@ -231,9 +253,20 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 
-		lines.draw_text("Timer:",
+		// based on https://stackoverflow.com/a/35345427
+		lines.draw_text("Timer:"+ std::to_string((int)std::ceil(timer)),
 			glm::vec3(-aspect + 0.1f * H, 0.8 - 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0xff));
+
+		if (is_game_over)
+		{
+			constexpr float GameOverH = 0.2f;
+			lines.draw_text("GAME OVER! Press Enter to restart.",
+				glm::vec3(-aspect + 0.0f * GameOverH, 0 - 0.1f * GameOverH, 0.0),
+				glm::vec3(GameOverH, 0.0f, 0.0f), glm::vec3(0.0f, GameOverH, 0.0f),
+				glm::u8vec4(0x00, 0x00, 0x00, 0xff));
+		}
+		
 	}
 }
