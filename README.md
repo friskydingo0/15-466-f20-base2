@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Hungry Boxy
 
-Author: (TODO: your name)
+Author: Pavan Paravasthu
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: Boxy is a cute little low-poly mouse with a huge metabolism, that needs to constantly eat cheese to stay alive! Eat as much cheese as you can before the timer runs out.
 
 Screen Shot:
 
@@ -10,9 +10,9 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+WASD moves Boxy. Enter restarts the game. Simple as that.
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Sources: All assets created with Blender v2.90
 
 This game was built with [NEST](NEST.md).
 
