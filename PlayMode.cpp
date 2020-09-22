@@ -155,7 +155,6 @@ void PlayMode::update(float elapsed) {
 		if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
 
 		glm::mat4x3 frame = boxy->make_local_to_parent();
-		glm::vec3 right = frame[0];
 		glm::vec3 up = frame[1];
 
 		boxy->position += move.y * up;
