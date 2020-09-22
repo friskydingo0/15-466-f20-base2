@@ -12,7 +12,9 @@ How To Play:
 
 WASD moves Boxy. Enter restarts the game. Simple as that.
 
-Sources: All assets created with Blender v2.90
+Sources: 
+All 3D assets created with Blender v2.90
+Font : PathFont, provided with base code
 
 This game was built with [NEST](NEST.md).
 
